@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard Statistik Deskriptif</title>
+  <style>
+/* =====================================================
+   style.css — Tampilan Dashboard Statistik Deskriptif
+   ===================================================== */
+
+:root {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel2: #273449;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --pos: 56, 130, 246;
+  --neg: 239, 68, 68;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header { text-align: center; padding: 28px 16px 8px; }
+header h1 { margin: 0; font-size: 1.9rem; }
+header p { color: var(--muted); margin: 6px 0 0; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 18px; }
+footer { text-align: center; color: var(--muted); padding: 24px; font-size: .85rem; }
+
+.panel { background: var(--panel); border-radius: 14px; padding: 20px; }
+.panel h2 { margin: 0 0 14px; font-size: 1.15rem; }
+.panel h3 { margin: 0 0 8px; font-size: .95rem; color: var(--muted); }
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.panel-head h2 { margin: 0; }
+
+select {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid #3b4b66;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: .95rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+.card {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 16px;
+}
+.small .card {
+  background: var(--panel2);
+  padding: 12px;
+}
+.card .label {
+  color: var(--muted);
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.card .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 4px;
+  color: var(--accent);
+}
+.small .card .value { font-size: 1.2rem; }
+
+.scroll { overflow-x: auto; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .9rem;
+}
+th, td {
+  padding: 9px 12px;
+  text-align: right;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+th:first-child, td:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+thead th {
+  color: var(--muted);
+  font-weight: 600;
+}
+#corrTable td {
+  text-align: center;
+  font-weight: 600;
+  border: 2px solid var(--panel);
+}
+#corrTable th { text-align: center; }
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 14px;
+}
+@media (max-width: 800px) {
+  .grid2 { grid-template-columns: 1fr; }
+}
+.hint {
+  color: var(--muted);
+  font-size: .85rem;
+  margin: 8px 0 0;
+}
+
+#insights ul {
+  padding-left: 20px;
+  line-height: 1.7;
+  margin: 8px 0;
+}
+#insights .warn {
+  background: #422006;
+  border-left: 4px solid #f59e0b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: .78rem;
+  font-weight: 700;
+}
+.tag.pos {
+  background: rgba(var(--pos), .25);
+  color: #93c5fd;
+}
+.tag.neg {
+  background: rgba(var(--neg), .25);
+  color: #fca5a5;
+}
+
+.upload {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.upload input { color: var(--muted); }
+
+/* Tambahan untuk scatter plot */
+.scatter-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.scatter-controls label {
+  color: var(--muted);
+  font-size: .85rem;
+}
+.scatter-controls select {
+  width: 100%;
+  margin-top: 6px;
+}
+.scatter-chart {
+  width: 100%;
+  overflow-x: auto;
+}
+@media (max-width: 600px) {
+  .scatter-controls {
+    grid-template-columns: 1fr;
+  }
+}
+  
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 Dashboard Statistik Deskriptif</h1>
+    <p id="subtitle">Memuat data...</p>
+    <div class="upload">
+      Punya data sendiri? Unggah CSV atau Excel:
+      <input type="file" id="dataFile" accept=".csv,.xlsx,.xls,text/csv">
+    </div>
+  </header>
+
+  <main>
+
+    <section class="cards" id="summaryCards"></section>
+
+    <section class="panel">
+      <h2>Tabel Statistik Deskriptif</h2>
+      <div class="scroll">
+        <table id="statTable"></table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Distribusi Variabel</h2>
+        <select id="varSelect"></select>
+      </div>
+
+      <div class="cards small" id="varCards"></div>
+
+      <div class="grid2">
+        <div>
+          <h3>Histogram</h3>
+          <div id="histChart"></div>
+        </div>
+
+        <div>
+          <h3>Boxplot</h3>
+          <div id="boxplot"></div>
+          <p class="hint" id="boxInfo"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAMBAHAN SCATTER PLOT -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Grafik Hubungan Variabel (Scatter Plot)</h2>
+      </div>
+
+      <div class="scatter-controls">
+        <label>
+          Variabel X:
+          <select id="scatterX"></select>
+        </label>
+
+        <label>
+          Variabel Y:
+          <select id="scatterY"></select>
+        </label>
+      </div>
+
+      <div class="scatter-chart" id="scatterChart"></div>
+
+      <p class="hint" id="scatterInfo"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Matriks Korelasi (Pearson)</h2>
+
+      <div class="scroll">
+        <table id="corrTable"></table>
+      </div>
+
+      <p class="hint">
+        Biru = korelasi positif, merah = korelasi negatif.
+        Makin pekat = makin kuat.
+      </p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Analisis &amp; Keputusan</h2>
+
+        <label>
+          Variabel target:
+          <select id="targetSelect"></select>
+        </label>
+      </div>
+
+      <div id="insights"></div>
+    </section>
+
+  </main>
+
+  <footer>Dibuat dengan HTML + CSS + JavaScript</footer>
+
+  <!-- Library baca Excel (opsional, butuh internet) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- Script aplikasi (urutan penting) -->
+  <script>
+/* =====================================================
+   data.js — Data bawaan dashboard
+   Sumber : data/282102758_okta_excel_yang_pak_win.xlsx
+   Sheet  : "korelasi" (30 observasi x 5 variabel)
+   Salinan CSV: data/data-korelasi.csv
+   Mau ganti data? Edit isi DATA_CSV di bawah, atau pakai
+   tombol unggah CSV/Excel di halaman dashboard.
+   ===================================================== */
+
+const DATA_SOURCE = "Excel · sheet korelasi";
+
+const DATA_CSV = `Jam(V),Tinggi(W),Berat(X),Persepsi(Y),PD(Z)
+5,169,81,4,4
+5,170,49,2,9
+6,170,56,5,8
+8,162,50,8,7
+7,166,50,6,9
+7,160,79,6,7
+5,180,80,6,4
+7,151,48,7,6
+5,170,130,6,8
+8,180,56,3,5
+7,158,52,7,8
+7,157,59,6,6
+6,174,64,9,9
+6,168,49,5,8
+6,167,50,8,9
+2,173,63,5,4
+7,165,58,9,9
+1,170,60,9,9
+4,160,57,9,9
+5,152,60,5,3
+6,167,52,6,5
+3,167,58,9,9
+1,170,60,9,9
+6,164,57,8,4
+7,155,45,7,7
+8,168,45,5,5
+2,170,60,5,5
+1,174,68,9,9
+7,170,60,7,7
+2,184,140,7,9`;
+
+/* =====================================================
+   utils.js
+   Fungsi bantu: format angka, statistik, korelasi, regresi, parser CSV
+   ===================================================== */
+
+let DB = null; // diisi oleh loadFromCSV() di main.js
+
+
+const fmt = (v, d = 2) =>
+  v === null || v === undefined
+    ? "-"
+    : Number(v).toLocaleString("id-ID", {
+        maximumFractionDigits: d
+      });
+
+
+const fmtMode = (m) =>
+  (m === null ? "Tidak ada" : m.map((x) => fmt(x)).join(", "));
+
+
+function strength(r) {
+  const a = Math.abs(r);
+
+  if (a >= 0.8) return "sangat kuat";
+  if (a >= 0.6) return "kuat";
+  if (a >= 0.4) return "sedang";
+  if (a >= 0.2) return "lemah";
+
+  return "sangat lemah";
+}
+
+
+function card(label, value) {
+  return `
+    <div class="card">
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+    </div>
+  `;
+}
+
+
+const mean =
+  (a) =>
+    a.reduce(
+      (x, y) =>
+        x + y,
+      0
+    ) / a.length;
+
+
+function quantileInc(
+  sorted,
+  p
+) {
+
+  const pos =
+    (sorted.length - 1) *
+    p;
+
+  const lo =
+    Math.floor(pos);
+
+  const hi =
+    Math.ceil(pos);
+
+  return (
+    sorted[lo] +
+    (sorted[hi] -
+      sorted[lo]) *
+      (pos - lo)
+  );
+}
+
+
+function pearson(
+  x,
+  y
+) {
+
+  const mx =
+    mean(x);
+
+  const my =
+    mean(y);
+
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+
+  for (
+    let i = 0;
+    i < x.length;
+    i++
+  ) {
+
+    sxy +=
+      (x[i] - mx) *
+      (y[i] - my);
+
+    sxx +=
+      (x[i] - mx) ** 2;
+
+    syy +=
+      (y[i] - my) ** 2;
+  }
+
+  return sxx && syy
+    ? sxy /
+        Math.sqrt(
+          sxx * syy
+        )
+    : 0;
+}
+
+
+function describe(
+  values
+) {
+
+  const n =
+    values.length;
+
+  const sorted =
+    [...values].sort(
+      (a, b) => a - b
+    );
+
+  const m =
+    mean(values);
+
+  const ss =
+    values.reduce(
+      (s, v) =>
+        s + (v - m) ** 2,
+      0
+    );
+
+  const variance =
+    n > 1
+      ? ss / (n - 1)
+      : 0;
+
+  const std =
+    Math.sqrt(
+      variance
+    );
+
+  const pstd =
+    Math.sqrt(
+      ss / n
+    );
+
+  const skew =
+    pstd
+      ? values.reduce(
+          (s, v) =>
+            s +
+            (v - m) ** 3,
+          0
+        ) /
+        n /
+        pstd ** 3
+      : 0;
+
+  const q1 =
+    quantileInc(
+      sorted,
+      0.25
+    );
+
+  const q3 =
+    quantileInc(
+      sorted,
+      0.75
+    );
+
+  const iqr =
+    q3 - q1;
+
+  const fl =
+    q1 - 1.5 * iqr;
+
+  const fh =
+    q3 + 1.5 * iqr;
+
+  const freq = {};
+
+  values.forEach(
+    (v) =>
+      (freq[v] =
+        (freq[v] || 0) + 1)
+  );
+
+  const maxF =
+    Math.max(
+      ...Object.values(freq)
+    );
+
+  const modes =
+    Object.keys(freq)
+      .filter(
+        (k) =>
+          freq[k] === maxF
+      )
+      .map(Number)
+      .sort(
+        (a, b) => a - b
+      );
+
+  return {
+    n,
+    mean: m,
+    median:
+      quantileInc(
+        sorted,
+        0.5
+      ),
+
+    mode:
+      modes.length ===
+      Object.keys(freq).length
+        ? null
+        : modes,
+
+    std,
+    variance,
+
+    min:
+      sorted[0],
+
+    max:
+      sorted[n - 1],
+
+    range:
+      sorted[n - 1] -
+      sorted[0],
+
+    q1,
+    q3,
+    iqr,
+
+    cv:
+      m
+        ? (std / m) * 100
+        : 0,
+
+    skewness:
+      skew,
+
+    fence_low:
+      fl,
+
+    fence_high:
+      fh,
+
+    outliers:
+      values.filter(
+        (v) =>
+          v < fl ||
+          v > fh
+      ),
+
+    values
+  };
+}
+
+
+function linearRegression(x, y) {
+
+  const n = x.length;
+
+  const meanX =
+    mean(x);
+
+  const meanY =
+    mean(y);
+
+  let numerator = 0;
+  let denominator = 0;
+
+  for (let i = 0; i < n; i++) {
+
+    numerator +=
+      (x[i] - meanX) *
+      (y[i] - meanY);
+
+    denominator +=
+      (x[i] - meanX) ** 2;
+  }
+
+  const slope =
+    denominator
+      ? numerator / denominator
+      : 0;
+
+  const intercept =
+    meanY -
+    slope * meanX;
+
+  return {
+    slope,
+    intercept
+  };
+}
+
+
+function parseCSV(text) {
+  const lines = text
+    .trim()
+    .split(/\r?\n/)
+    .filter((l) => l.replace(/[,;\s]/g, "") !== ""); // buang baris kosong
+
+  const sep = lines[0].includes(";") && !lines[0].includes(",") ? ";" : ",";
+  const head = lines[0].split(sep).map((h) => h.trim());
+  const rows = lines.slice(1).map((l) => l.split(sep));
+  const data = {};
+
+  head.forEach((h, j) => {
+    const vals = rows.map((r) => parseFloat((r[j] || "").trim()));
+    if (h && vals.length && vals.every((v) => !isNaN(v))) data[h] = vals;
+  });
+
+  return data;
+}
+
+
+function buildDB(
+  data
+) {
+
+  const columns =
+    Object.keys(data);
+
+  const stats = {};
+
+  columns.forEach(
+    (c) =>
+      (stats[c] =
+        describe(
+          data[c]
+        ))
+  );
+
+  const corr =
+    columns.map(
+      (a) =>
+        columns.map(
+          (b) =>
+            pearson(
+              data[a],
+              data[b]
+            )
+        )
+    );
+
+  return {
+    columns,
+    n:
+      data[
+        columns[0]
+      ].length,
+    stats,
+    corr
+  };
+}
+/* =====================================================
+   charts.js
+   Grafik SVG: histogram, boxplot, scatter plot
+   ===================================================== */
+
+function drawHistogram(col, s) {
+
+  const vals = s.values;
+
+  const k =
+    Math.max(
+      3,
+      Math.ceil(Math.log2(vals.length)) + 1
+    );
+
+  const width =
+    (s.max - s.min) / k || 1;
+
+  const counts =
+    new Array(k).fill(0);
+
+  vals.forEach((v) => {
+
+    let i =
+      Math.floor(
+        (v - s.min) / width
+      );
+
+    if (i >= k) i = k - 1;
+
+    counts[i]++;
+  });
+
+  const W = 480;
+  const H = 260;
+  const L = 40;
+  const R = 10;
+  const T = 20;
+  const B = 50;
+
+  const maxC = Math.max(...counts);
+
+  const bw =
+    (W - L - R) / k;
+
+  let svg =
+    `<svg viewBox="0 0 ${W} ${H}" width="100%">`;
+
+  for (let t = 0; t <= maxC; t++) {
+
+    const y =
+      H - B -
+      (t / maxC) *
+      (H - B - T);
+
+    svg +=
+      `<line
+        x1="${L}"
+        x2="${W - R}"
+        y1="${y}"
+        y2="${y}"
+        stroke="#334155"/>` +
+
+      `<text
+        x="${L - 8}"
+        y="${y + 4}"
+        fill="#94a3b8"
+        font-size="11"
+        text-anchor="end">${t}</text>`;
+  }
+
+  counts.forEach((c, i) => {
+
+    const h =
+      (c / maxC) *
+      (H - B - T);
+
+    const x =
+      L + i * bw;
+
+    svg +=
+      `<rect
+        x="${x + 3}"
+        y="${H - B - h}"
+        width="${bw - 6}"
+        height="${h}"
+        fill="#38bdf8"/>` +
+
+      `<text
+        x="${x + bw / 2}"
+        y="${H - B - h - 5}"
+        fill="#e2e8f0"
+        font-size="12"
+        text-anchor="middle">${c}</text>` +
+
+      `<text
+        x="${x + bw / 2}"
+        y="${H - B + 16}"
+        fill="#94a3b8"
+        font-size="11"
+        text-anchor="middle">
+        ${fmt(s.min + i * width, 1)}–${fmt(s.min + (i + 1) * width, 1)}
+      </text>`;
+  });
+
+  svg +=
+    `<text
+      x="${(L + W - R) / 2}"
+      y="${H - 8}"
+      fill="#94a3b8"
+      font-size="12"
+      text-anchor="middle">${col}</text>
+    </svg>`;
+
+  document.getElementById("histChart").innerHTML =
+    svg;
+}
+
+
+function drawBoxplot(s) {
+
+  const W = 480;
+  const H = 130;
+  const pad = 30;
+
+  const inside =
+    s.values.filter(
+      (v) =>
+        v >= s.fence_low &&
+        v <= s.fence_high
+    );
+
+  const wLow =
+    Math.min(...inside);
+
+  const wHigh =
+    Math.max(...inside);
+
+  const lo =
+    Math.min(s.min, wLow);
+
+  const hi =
+    Math.max(s.max, wHigh);
+
+  const span =
+    hi - lo || 1;
+
+  const X = (v) =>
+    pad +
+    ((v - lo) / span) *
+    (W - 2 * pad);
+
+  const y = 60;
+
+  let svg =
+    `<svg
+      viewBox="0 0 ${W} ${H}"
+      width="100%">
+
+      <line
+        x1="${X(wLow)}"
+        x2="${X(s.q1)}"
+        y1="${y}"
+        y2="${y}"
+        stroke="#94a3b8"
+        stroke-width="2"/>
+
+      <line
+        x1="${X(s.q3)}"
+        x2="${X(wHigh)}"
+        y1="${y}"
+        y2="${y}"
+        stroke="#94a3b8"
+        stroke-width="2"/>
+
+      <line
+        x1="${X(wLow)}"
+        x2="${X(wLow)}"
+        y1="${y - 12}"
+        y2="${y + 12}"
+        stroke="#94a3b8"
+        stroke-width="2"/>
+
+      <line
+        x1="${X(wHigh)}"
+        x2="${X(wHigh)}"
+        y1="${y - 12}"
+        y2="${y + 12}"
+        stroke="#94a3b8"
+        stroke-width="2"/>
+
+      <rect
+        x="${X(s.q1)}"
+        y="${y - 22}"
+        width="${Math.max(
+          X(s.q3) - X(s.q1),
+          1
+        )}"
+        height="44"
+        fill="rgba(56,189,248,.35)"
+        stroke="#38bdf8"
+        stroke-width="2"/>
+
+      <line
+        x1="${X(s.median)}"
+        x2="${X(s.median)}"
+        y1="${y - 22}"
+        y2="${y + 22}"
+        stroke="#f59e0b"
+        stroke-width="3"/>`;
+
+  s.outliers.forEach((o) => {
+
+    svg +=
+      `<circle
+        cx="${X(o)}"
+        cy="${y}"
+        r="5"
+        fill="#ef4444"/>`;
+  });
+
+  [
+    [wLow, "Min*"],
+    [s.q1, "Q1"],
+    [s.median, "Med"],
+    [s.q3, "Q3"],
+    [wHigh, "Maks*"]
+  ].forEach(([v, t], i) => {
+
+    const yy =
+      i % 2 === 0
+        ? y + 42
+        : y + 58;
+
+    svg +=
+      `<text
+        x="${X(v)}"
+        y="${yy}"
+        fill="#94a3b8"
+        font-size="11"
+        text-anchor="middle">
+        ${t}: ${fmt(v)}
+      </text>`;
+  });
+
+  svg += "</svg>";
+
+  document.getElementById("boxplot").innerHTML =
+    svg;
+
+  document.getElementById("boxInfo").textContent =
+    s.outliers.length
+      ? `Outlier terdeteksi (aturan 1,5×IQR): ${s.outliers.map((o) => fmt(o)).join(", ")}`
+      : "Tidak ada outlier (aturan 1,5×IQR). *Whisker = nilai terjauh yang masih di dalam batas.";
+}
+
+
+function drawScatterPlot(
+  xCol,
+  yCol,
+  xValues,
+  yValues
+) {
+
+  const W = 700;
+  const H = 400;
+
+  const L = 65;
+  const R = 25;
+  const T = 25;
+  const B = 60;
+
+  const minX =
+    Math.min(...xValues);
+
+  const maxX =
+    Math.max(...xValues);
+
+  const minY =
+    Math.min(...yValues);
+
+  const maxY =
+    Math.max(...yValues);
+
+  const spanX =
+    maxX - minX || 1;
+
+  const spanY =
+    maxY - minY || 1;
+
+  const xScale =
+    (v) =>
+      L +
+      ((v - minX) / spanX) *
+      (W - L - R);
+
+  const yScale =
+    (v) =>
+      H -
+      B -
+      ((v - minY) / spanY) *
+      (H - B - T);
+
+  let svg =
+    `<svg
+      viewBox="0 0 ${W} ${H}"
+      width="100%"
+      style="min-width:550px">`;
+
+  // Grid horizontal
+  for (let i = 0; i <= 5; i++) {
+
+    const value =
+      minY +
+      (spanY / 5) * i;
+
+    const py =
+      yScale(value);
+
+    svg +=
+      `<line
+        x1="${L}"
+        x2="${W - R}"
+        y1="${py}"
+        y2="${py}"
+        stroke="#334155"
+        stroke-width="1"/>`;
+
+    svg +=
+      `<text
+        x="${L - 10}"
+        y="${py + 4}"
+        fill="#94a3b8"
+        font-size="11"
+        text-anchor="end">
+        ${fmt(value, 1)}
+      </text>`;
+  }
+
+  // Grid vertikal
+  for (let i = 0; i <= 5; i++) {
+
+    const value =
+      minX +
+      (spanX / 5) * i;
+
+    const px =
+      xScale(value);
+
+    svg +=
+      `<line
+        x1="${px}"
+        x2="${px}"
+        y1="${T}"
+        y2="${H - B}"
+        stroke="#334155"
+        stroke-width="1"/>`;
+
+    svg +=
+      `<text
+        x="${px}"
+        y="${H - B + 20}"
+        fill="#94a3b8"
+        font-size="11"
+        text-anchor="middle">
+        ${fmt(value, 1)}
+      </text>`;
+  }
+
+  // Sumbu X
+  svg +=
+    `<line
+      x1="${L}"
+      x2="${W - R}"
+      y1="${H - B}"
+      y2="${H - B}"
+      stroke="#94a3b8"
+      stroke-width="2"/>`;
+
+  // Sumbu Y
+  svg +=
+    `<line
+      x1="${L}"
+      x2="${L}"
+      y1="${T}"
+      y2="${H - B}"
+      stroke="#94a3b8"
+      stroke-width="2"/>`;
+
+  // Garis regresi linear
+  const regression =
+    linearRegression(
+      xValues,
+      yValues
+    );
+
+  const lineX1 = minX;
+  const lineX2 = maxX;
+
+  const lineY1 =
+    regression.slope *
+      lineX1 +
+    regression.intercept;
+
+  const lineY2 =
+    regression.slope *
+      lineX2 +
+    regression.intercept;
+
+  svg +=
+    `<line
+      x1="${xScale(lineX1)}"
+      y1="${yScale(lineY1)}"
+      x2="${xScale(lineX2)}"
+      y2="${yScale(lineY2)}"
+      stroke="#f59e0b"
+      stroke-width="3"
+      stroke-dasharray="8,6"/>`;
+
+  // Titik data
+  xValues.forEach((x, i) => {
+
+    const y =
+      yValues[i];
+
+    svg +=
+      `<circle
+        cx="${xScale(x)}"
+        cy="${yScale(y)}"
+        r="6"
+        fill="#38bdf8"
+        stroke="#e0f2fe"
+        stroke-width="1.5"
+        opacity="0.9">
+        <title>
+          ${xCol}: ${fmt(x)}
+          | ${yCol}: ${fmt(y)}
+        </title>
+      </circle>`;
+  });
+
+  // Label X
+  svg +=
+    `<text
+      x="${(L + W - R) / 2}"
+      y="${H - 12}"
+      fill="#e2e8f0"
+      font-size="13"
+      font-weight="600"
+      text-anchor="middle">
+      ${xCol}
+    </text>`;
+
+  // Label Y
+  svg +=
+    `<text
+      x="15"
+      y="${H / 2}"
+      fill="#e2e8f0"
+      font-size="13"
+      font-weight="600"
+      text-anchor="middle"
+      transform="rotate(-90 15 ${H / 2})">
+      ${yCol}
+    </text>`;
+
+  svg += "</svg>";
+
+  document.getElementById(
+    "scatterChart"
+  ).innerHTML = svg;
+
+  const r =
+    pearson(
+      xValues,
+      yValues
+    );
+
+  const r2 =
+    r * r;
+
+  let hubungan =
+    strength(r);
+
+  let arah =
+    r > 0
+      ? "positif"
+      : r < 0
+        ? "negatif"
+        : "tidak ada";
+
+  document.getElementById(
+    "scatterInfo"
+  ).innerHTML =
+    `Hubungan <b>${xCol}</b> dengan <b>${yCol}</b>:
+    <span class="tag ${r >= 0 ? "pos" : "neg"}">
+      r = ${fmt(r)}
+    </span>
+    — hubungan ${arah} ${hubungan}.
+    R² = <b>${fmt(r2)}</b>.
+    Garis kuning menunjukkan garis tren linear.`;
+}
+
+
+
+function renderScatter() {
+
+  const xCol =
+    document.getElementById("scatterX").value;
+
+  const yCol =
+    document.getElementById("scatterY").value;
+
+  if (!xCol || !yCol || !DB) return;
+
+  const x =
+    DB.stats[xCol].values;
+
+  const y =
+    DB.stats[yCol].values;
+
+  drawScatterPlot(
+    xCol,
+    yCol,
+    x,
+    y
+  );
+}
+/* =====================================================
+   render.js
+   Menampilkan ringkasan, tabel, korelasi, dan analisis ke halaman
+   ===================================================== */
+
+function renderSummary() {
+  const { columns, n } = DB;
+  const last = columns[columns.length - 1]; // variabel terakhir sebagai sorotan
+
+  document.getElementById("subtitle").textContent =
+    `${n} observasi · ${columns.length} variabel numerik · Sumber: ${DB.source}`;
+
+  document.getElementById("summaryCards").innerHTML =
+    card("Jumlah Data (n)", n) +
+    card("Jumlah Variabel", columns.length) +
+    card(`Rata-rata ${last}`, fmt(DB.stats[last].mean)) +
+    card(`Median ${last}`, fmt(DB.stats[last].median));
+}
+
+
+function renderTable() {
+
+  const rows = [
+    ["N", "n"],
+    ["Rata-rata", "mean"],
+    ["Median", "median"],
+    ["Modus", "mode"],
+    ["Std. Deviasi", "std"],
+    ["Varians", "variance"],
+    ["Minimum", "min"],
+    ["Q1", "q1"],
+    ["Q3", "q3"],
+    ["Maksimum", "max"],
+    ["Rentang", "range"],
+    ["IQR", "iqr"],
+    ["CV (%)", "cv"],
+    ["Kemencengan", "skewness"],
+  ];
+
+  let html =
+    "<thead><tr><th>Variabel</th>" +
+    rows.map((r) => `<th>${r[0]}</th>`).join("") +
+    "</tr></thead><tbody>";
+
+  DB.columns.forEach((c) => {
+
+    const s = DB.stats[c];
+
+    html += `<tr><td>${c}</td>` +
+      rows.map(([, k]) =>
+        `<td>${k === "mode" ? fmtMode(s.mode) : fmt(s[k])}</td>`
+      ).join("") +
+      "</tr>";
+  });
+
+  document.getElementById("statTable").innerHTML =
+    html + "</tbody>";
+}
+
+
+function renderVariable(col) {
+
+  const s = DB.stats[col];
+
+  document.getElementById("varCards").innerHTML =
+    card("Rata-rata", fmt(s.mean)) +
+    card("Median", fmt(s.median)) +
+    card("Modus", fmtMode(s.mode)) +
+    card("Std. Deviasi", fmt(s.std)) +
+    card(
+      "Minimum – Maksimum",
+      `${fmt(s.min)} – ${fmt(s.max)}`
+    ) +
+    card("IQR", fmt(s.iqr));
+
+  drawHistogram(col, s);
+  drawBoxplot(s);
+}
+
+
+
+function renderScatterSelectors() {
+
+  const xSel =
+    document.getElementById("scatterX");
+
+  const ySel =
+    document.getElementById("scatterY");
+
+  xSel.innerHTML = "";
+  ySel.innerHTML = "";
+
+  DB.columns.forEach((c) => {
+
+    xSel.add(
+      new Option(c, c)
+    );
+
+    ySel.add(
+      new Option(c, c)
+    );
+  });
+
+  // Default: variabel pertama (X) vs variabel kedua (Y)
+  xSel.value = DB.columns[0];
+  ySel.value = DB.columns[1] || DB.columns[0];
+
+  renderScatter();
+}
+
+
+function renderCorr() {
+
+  const { columns, corr } =
+    DB;
+
+  let html =
+    "<thead><tr><th>Variabel</th>" +
+    columns
+      .map((c) => `<th>${c}</th>`)
+      .join("") +
+    "</tr></thead><tbody>";
+
+  corr.forEach((row, i) => {
+
+    html +=
+      `<tr><td>${columns[i]}</td>`;
+
+    row.forEach((r) => {
+
+      const rgb =
+        r >= 0
+          ? "56,130,246"
+          : "239,68,68";
+
+      html +=
+        `<td style="background:rgba(${rgb},${0.15 + Math.abs(r) * 0.75})">
+          ${fmt(r)}
+        </td>`;
+    });
+
+    html += "</tr>";
+  });
+
+  document.getElementById(
+    "corrTable"
+  ).innerHTML =
+    html + "</tbody>";
+}
+
+
+function renderInsights(target) {
+
+  const {
+    columns,
+    corr,
+    n
+  } = DB;
+
+  const ti =
+    columns.indexOf(target);
+
+  const list =
+    columns
+      .map((c, i) => ({
+        c,
+        r: corr[ti][i]
+      }))
+      .filter(
+        (o) =>
+          o.c !== target
+      )
+      .sort(
+        (a, b) =>
+          Math.abs(b.r) -
+          Math.abs(a.r)
+      );
+
+  const s =
+    DB.stats[target];
+
+  let html =
+    `<p>
+      Rata-rata <b>${target}</b> =
+      <b>${fmt(s.mean)}</b>,
+      median =
+      <b>${fmt(s.median)}</b>,
+      std. deviasi =
+      <b>${fmt(s.std)}</b>
+      (CV ${fmt(s.cv, 1)}%).
+    `;
+
+  html +=
+    Math.abs(s.skewness) < 0.5
+      ? "Distribusinya cukup simetris."
+      : s.skewness < 0
+        ? "Distribusinya miring ke kiri (banyak nilai tinggi)."
+        : "Distribusinya miring ke kanan (banyak nilai rendah).";
+
+  html +=
+    "</p><h3>Hubungan dengan " +
+    target +
+    "</h3><ul>";
+
+  list.forEach(({ c, r }) => {
+
+    const cls =
+      r >= 0
+        ? "pos"
+        : "neg";
+
+    html +=
+      `<li>
+        <b>${c}</b>
+        <span class="tag ${cls}">
+          r = ${fmt(r)}
+        </span>
+        — hubungan
+        ${r >= 0 ? "positif" : "negatif"}
+        ${strength(r)}.
+      </li>`;
+  });
+
+  html += "</ul>";
+
+  const pos =
+    list
+      .filter(
+        (o) =>
+          o.r >= 0.6
+      )
+      .map(
+        (o) => o.c
+      );
+
+  const neg =
+    list
+      .filter(
+        (o) =>
+          o.r <= -0.6
+      )
+      .map(
+        (o) => o.c
+      );
+
+  html +=
+    "<h3>Keputusan yang dapat diambil</h3><ul>";
+
+  if (pos.length)
+    html +=
+      `<li>
+        Tingkatkan/dorong faktor
+        yang berkorelasi positif kuat:
+        <b>${pos.join(", ")}</b>.
+      </li>`;
+
+  if (neg.length)
+    html +=
+      `<li>
+        Batasi/kendalikan faktor
+        yang berkorelasi negatif kuat:
+        <b>${neg.join(", ")}</b>.
+      </li>`;
+
+  html +=
+    `<li>
+      Gunakan nilai Q1
+      (${fmt(s.q1)})
+      sebagai batas kelompok berisiko:
+      data di bawah Q1 perlu
+      perhatian/pendampingan.
+    </li>`;
+
+  if (s.outliers.length)
+    html +=
+      `<li>
+        Periksa outlier
+        (${s.outliers.map((o) => fmt(o)).join(", ")})
+        sebelum mengambil kesimpulan.
+      </li>`;
+
+  html += "</ul>";
+
+  html +=
+    `<div class="warn">
+      <b>Catatan:</b>
+      korelasi ≠ sebab-akibat.
+      ${
+        n < 30
+          ? `Jumlah data hanya <b>${n}</b>
+             (kurang dari 30), sehingga korelasi
+             mudah terlihat sangat tinggi dan
+             belum bisa digeneralisasi. `
+          : ""
+      }
+      Variabel-variabel yang saling berkorelasi tinggi
+      (multikolinearitas) sulit dipisahkan
+      pengaruh murninya.
+    </div>`;
+
+  document.getElementById(
+    "insights"
+  ).innerHTML =
+    html;
+}
+
+/* =====================================================
+   main.js — Inisialisasi, event, dan unggah file
+   ===================================================== */
+
+function fillSelect(el, columns) {
+  el.innerHTML = "";
+  columns.forEach((c) => el.add(new Option(c, c)));
+}
+
+function loadFromCSV(text, source = DATA_SOURCE) {
+  const data = parseCSV(text);
+
+  if (Object.keys(data).length < 2) {
+    alert("Butuh minimal 2 kolom numerik pada data.");
+    return;
+  }
+
+  DB = buildDB(data);
+  DB.source = source;
+
+  const varSel = document.getElementById("varSelect");
+  const tgtSel = document.getElementById("targetSelect");
+  fillSelect(varSel, DB.columns);
+  fillSelect(tgtSel, DB.columns);
+
+  const def = DB.columns[DB.columns.length - 1];
+  varSel.value = def;
+  tgtSel.value = def;
+
+  renderSummary();
+  renderTable();
+  renderVariable(def);
+  renderCorr();
+  renderInsights(def);
+  renderScatterSelectors();
+}
+
+// ---------- Unggah Excel (.xlsx/.xls) lewat SheetJS ----------
+function loadFromWorkbook(wb, fileName) {
+  // Utamakan sheet bernama "korelasi" / "data"; kalau tidak ada, cari sheet numerik pertama
+  const preferred = wb.SheetNames.find((n) => /^(korelasi|data)$/i.test(n));
+  const candidates = preferred ? [preferred] : wb.SheetNames;
+
+  for (const name of candidates) {
+    const csv = XLSX.utils.sheet_to_csv(wb.Sheets[name], { rawNumbers: true });
+    if (Object.keys(parseCSV(csv)).length >= 2) {
+      loadFromCSV(csv, `${fileName} · sheet ${name}`);
+      return;
+    }
+  }
+  alert("Tidak ditemukan sheet dengan minimal 2 kolom numerik.");
+}
+
+// ---------- Event ----------
+document.getElementById("varSelect").addEventListener("change", (e) => renderVariable(e.target.value));
+document.getElementById("targetSelect").addEventListener("change", (e) => renderInsights(e.target.value));
+document.getElementById("scatterX").addEventListener("change", renderScatter);
+document.getElementById("scatterY").addEventListener("change", renderScatter);
+
+document.getElementById("dataFile").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+
+  const reader = new FileReader();
+  const isExcel = /\.xlsx?$/i.test(f.name);
+
+  if (isExcel) {
+    if (typeof XLSX === "undefined") {
+      alert("Library SheetJS belum termuat (butuh internet). Simpan sheet sebagai CSV lalu unggah CSV-nya.");
+      return;
+    }
+    reader.onload = () => loadFromWorkbook(XLSX.read(reader.result, { type: "array" }), f.name);
+    reader.readAsArrayBuffer(f);
+  } else {
+    reader.onload = () => loadFromCSV(reader.result, f.name);
+    reader.readAsText(f);
+  }
+});
+
+// ---------- Jalankan dashboard dengan data bawaan ----------
+loadFromCSV(DATA_CSV);
+  </script>
+</body>
+</html>
